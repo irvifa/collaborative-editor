@@ -1,30 +1,34 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:web_client/main.dart';
+import 'package:web_client/main.dart'; // Replace with your actual package name
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('Collaborative Text Editor app test',
+      (WidgetTester tester) async {
+    // Build the app and trigger a frame.
+    await tester.pumpWidget(MyApp()); // Removed 'const' keyword
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    // Verify that the app displays the correct title.
+    expect(find.text('Collaborative Text Editor'), findsOneWidget);
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
+    // Verify that the theme toggle button is present.
+    expect(find.byIcon(Icons.brightness_6), findsOneWidget);
+
+    // Tap the theme toggle button to switch themes.
+    await tester.tap(find.byIcon(Icons.brightness_6));
+    await tester.pumpAndSettle();
+
+    // Verify that the theme has changed (optional; requires additional setup).
+
+    // Verify that the TextField is present.
+    expect(find.byType(TextField), findsOneWidget);
+
+    // Enter some text into the TextField.
+    await tester.enterText(find.byType(TextField), 'Hello, World!');
     await tester.pump();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // Verify that the text was entered.
+    expect(find.text('Hello, World!'), findsOneWidget);
   });
 }
