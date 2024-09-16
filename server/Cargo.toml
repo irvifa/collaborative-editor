@@ -13,3 +13,9 @@ log = "0.4"
 env_logger = "0.10.0"
 tokio-stream = "0.1"
 url = "2.3" 
+
+[dev-dependencies]
+tokio = { version = "1", features = ["full"] }
+tokio-tungstenite = "0.18.0"
+futures-util = "0.3.28"
+serde_json = "1.0"
