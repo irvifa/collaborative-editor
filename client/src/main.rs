@@ -1,19 +1,24 @@
 use futures_util::{SinkExt, StreamExt};
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 use url::Url;
-use serde::{Serialize, Deserialize};
 use std::io::{self, Write};
 use std::time::Duration;
 use log::{error, info, warn};
 
-#[derive(Debug, Serialize, Deserialize)]
-struct Edit {
-    position: usize,
-    insert: Option<String>,
-    delete: Option<usize>,
-}
+// Import the necessary items from your library crate
+use collaborative_editor_client::{
+    parse_user_input, serialize_edit, deserialize_edit, calculate_retry_delay, Edit,
+};
 
-async fn connect_to_server(url: &str) -> Result<(futures_util::stream::SplitSink<tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>, Message>, futures_util::stream::SplitStream<tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>>), Box<dyn std::error::Error>> {
+async fn connect_to_server(url: &str) -> Result<(
+    futures_util::stream::SplitSink<
+        tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>,
+        Message,
+    >,
+    futures_util::stream::SplitStream<
+        tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>,
+    >,
+), Box<dyn std::error::Error>> {
     let url = Url::parse(url)?;
     let (ws_stream, _) = connect_async(url).await?;
     info!("WebSocket handshake has been successfully completed");
@@ -37,8 +42,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     error!("Failed to connect after {} attempts: {}", max_retries, e);
                     return Err("Max retries exceeded".into());
                 }
-                let delay = Duration::from_secs(2u64.pow(retry_count));
-                warn!("Connection attempt failed. Retrying in {} seconds...", delay.as_secs());
+                let delay = calculate_retry_delay(retry_count);
+                warn!(
+                    "Connection attempt failed. Retrying in {} seconds...",
+                    delay.as_secs()
+                );
                 tokio::time::sleep(delay).await;
             }
         }
@@ -48,47 +56,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         loop {
             print!("Enter an edit (position,insert/delete): ");
             io::stdout().flush().unwrap();
-            
+
             let mut input = String::new();
             if io::stdin().read_line(&mut input).is_err() {
                 warn!("Failed to read input.");
                 continue;
             }
 
-            let parts: Vec<&str> = input.trim().split(',').collect();
-            if parts.len() != 2 {
-                warn!("Invalid input format. Use 'position,insert' or 'position,delete'");
-                continue;
-            }
-            
-            let position: usize = match parts[0].parse() {
-                Ok(pos) => pos,
-                Err(_) => {
-                    warn!("Invalid position. Please enter a number.");
+            let edit = match parse_user_input(&input) {
+                Ok(edit) => edit,
+                Err(err_msg) => {
+                    warn!("{}", err_msg);
                     continue;
                 }
             };
 
-            let (insert, delete) = if parts[1].starts_with("delete") {
-                let delete_count: usize = match parts[1][6..].trim().parse() {
-                    Ok(count) => count,
-                    Err(_) => {
-                        warn!("Invalid delete count. Please enter a number.");
-                        continue;
-                    }
-                };
-                (None, Some(delete_count))
-            } else {
-                (Some(parts[1].to_string()), None)
-            };
-            
-            let edit = Edit {
-                position,
-                insert,
-                delete,
-            };
-
-            let edit_json = match serde_json::to_string(&edit) {
+            let edit_json = match serialize_edit(&edit) {
                 Ok(json) => json,
                 Err(e) => {
                     error!("Failed to serialize edit: {}", e);
@@ -107,7 +90,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         while let Some(message) = read.next().await {
             match message {
                 Ok(Message::Text(text)) => {
-                    match serde_json::from_str::<Edit>(&text) {
+                    match deserialize_edit(&text) {
                         Ok(edit) => info!("Received edit: {:?}", edit),
                         Err(e) => warn!("Failed to parse received edit: {}", e),
                     }
@@ -132,4 +115,3 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
-
