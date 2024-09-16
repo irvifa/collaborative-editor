@@ -1,8 +1,6 @@
 use collaborative_editor_client::{deserialize_edit, serialize_edit, Edit};
 use futures_util::{SinkExt, StreamExt};
-use std::net::SocketAddr;
 use tokio::net::TcpListener;
-use tokio::task;
 use tokio_tungstenite::{accept_async, connect_async, tungstenite::protocol::Message};
 use url::Url;
 

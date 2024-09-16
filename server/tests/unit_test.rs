@@ -1,5 +1,4 @@
 use collaborative_editor_server::{DocumentState, Edit};
-use serde_json::json;
 
 #[test]
 fn test_apply_edit_insert_success() {
@@ -24,9 +23,9 @@ fn test_apply_edit_delete_success() {
     doc.version = 0;
 
     let edit = Edit {
-        position: 6,          // Adjusted position to include the space
+        position: 6, // Adjusted position to include the space
         insert: None,
-        delete: Some(7),      // Adjusted delete length to remove " World!"
+        delete: Some(7), // Adjusted delete length to remove " World!"
         version: 0,
     };
 
@@ -53,7 +52,7 @@ fn test_apply_edit_version_mismatch() {
     assert!(result.is_err());
     assert_eq!(result.unwrap_err(), "Version mismatch");
     assert_eq!(doc.content, "Hello"); // Content should remain unchanged
-    assert_eq!(doc.version, 1);       // Version should remain unchanged
+    assert_eq!(doc.version, 1); // Version should remain unchanged
 }
 
 #[test]
@@ -76,7 +75,7 @@ fn test_apply_edit_invalid_insert_position() {
         "Insert position is not a valid UTF-8 boundary."
     );
     assert_eq!(doc.content, "Hello"); // Content should remain unchanged
-    assert_eq!(doc.version, 0);       // Version should remain unchanged
+    assert_eq!(doc.version, 0); // Version should remain unchanged
 }
 
 #[test]
@@ -99,7 +98,7 @@ fn test_apply_edit_invalid_delete_range() {
         "Delete range is not valid UTF-8 boundaries."
     );
     assert_eq!(doc.content, "Hello, World!"); // Content should remain unchanged
-    assert_eq!(doc.version, 0);               // Version should remain unchanged
+    assert_eq!(doc.version, 0); // Version should remain unchanged
 }
 
 #[test]

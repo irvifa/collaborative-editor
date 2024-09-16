@@ -1,5 +1,7 @@
+use collaborative_editor_client::{
+    calculate_retry_delay, deserialize_edit, parse_user_input, serialize_edit, Edit,
+};
 use std::time::Duration;
-use collaborative_editor_client::{parse_user_input, serialize_edit, deserialize_edit, calculate_retry_delay, Edit};
 
 #[test]
 fn test_parse_user_input_insert_success() {
@@ -41,7 +43,10 @@ fn test_parse_user_input_invalid_position() {
     let input = "abc,hello";
     let result = parse_user_input(input);
     assert!(result.is_err());
-    assert_eq!(result.err().unwrap(), "Invalid position. Please enter a number.");
+    assert_eq!(
+        result.err().unwrap(),
+        "Invalid position. Please enter a number."
+    );
 }
 
 #[test]
@@ -49,7 +54,10 @@ fn test_parse_user_input_invalid_delete_count() {
     let input = "5,deleteabc";
     let result = parse_user_input(input);
     assert!(result.is_err());
-    assert_eq!(result.err().unwrap(), "Invalid delete count. Please enter a number.");
+    assert_eq!(
+        result.err().unwrap(),
+        "Invalid delete count. Please enter a number."
+    );
 }
 
 #[test]
@@ -107,7 +115,10 @@ fn test_parse_user_input_negative_position() {
     let input = "-1,hello";
     let result = parse_user_input(input);
     assert!(result.is_err());
-    assert_eq!(result.err().unwrap(), "Invalid position. Please enter a number.");
+    assert_eq!(
+        result.err().unwrap(),
+        "Invalid position. Please enter a number."
+    );
 }
 
 #[test]
@@ -127,5 +138,8 @@ fn test_parse_user_input_invalid_delete_syntax() {
     let input = "5,delete";
     let result = parse_user_input(input);
     assert!(result.is_err());
-    assert_eq!(result.err().unwrap(), "Invalid delete count. Please enter a number.");
+    assert_eq!(
+        result.err().unwrap(),
+        "Invalid delete count. Please enter a number."
+    );
 }

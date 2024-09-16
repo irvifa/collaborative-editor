@@ -1,24 +1,32 @@
 use futures_util::{SinkExt, StreamExt};
+use log::{error, info, warn};
+use std::io::{self, Write};
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 use url::Url;
-use std::io::{self, Write};
-use std::time::Duration;
-use log::{error, info, warn};
 
 // Import the necessary items from your library crate
 use collaborative_editor_client::{
-    parse_user_input, serialize_edit, deserialize_edit, calculate_retry_delay, Edit,
+    calculate_retry_delay, deserialize_edit, parse_user_input, serialize_edit,
 };
 
-async fn connect_to_server(url: &str) -> Result<(
-    futures_util::stream::SplitSink<
-        tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>,
-        Message,
-    >,
-    futures_util::stream::SplitStream<
-        tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>,
-    >,
-), Box<dyn std::error::Error>> {
+async fn connect_to_server(
+    url: &str,
+) -> Result<
+    (
+        futures_util::stream::SplitSink<
+            tokio_tungstenite::WebSocketStream<
+                tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>,
+            >,
+            Message,
+        >,
+        futures_util::stream::SplitStream<
+            tokio_tungstenite::WebSocketStream<
+                tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>,
+            >,
+        >,
+    ),
+    Box<dyn std::error::Error>,
+> {
     let url = Url::parse(url)?;
     let (ws_stream, _) = connect_async(url).await?;
     info!("WebSocket handshake has been successfully completed");
@@ -89,12 +97,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let receive_messages = tokio::spawn(async move {
         while let Some(message) = read.next().await {
             match message {
-                Ok(Message::Text(text)) => {
-                    match deserialize_edit(&text) {
-                        Ok(edit) => info!("Received edit: {:?}", edit),
-                        Err(e) => warn!("Failed to parse received edit: {}", e),
-                    }
-                }
+                Ok(Message::Text(text)) => match deserialize_edit(&text) {
+                    Ok(edit) => info!("Received edit: {:?}", edit),
+                    Err(e) => warn!("Failed to parse received edit: {}", e),
+                },
                 Ok(_) => warn!("Received non-text message"),
                 Err(e) => {
                     error!("Error receiving message: {}", e);

@@ -1,16 +1,14 @@
+use futures_util::StreamExt;
+use futures_util::TryStreamExt;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::net::{TcpListener, TcpStream};
+use tokio::net::TcpStream;
 use tokio::sync::{mpsc, RwLock};
-use tokio_tungstenite::tungstenite::Message;
-use tokio_tungstenite::accept_async;
-use std::error::Error;
-use serde_json::json;
-use futures_util::TryStreamExt;
-use futures_util::StreamExt;
 use tokio_stream::wrappers::UnboundedReceiverStream;
-use tokio::sync::oneshot;
+use tokio_tungstenite::accept_async;
+use tokio_tungstenite::tungstenite::Message;
 
 pub type Tx = mpsc::UnboundedSender<tokio_tungstenite::tungstenite::Message>;
 pub type PeerMap = Arc<RwLock<HashMap<String, Tx>>>;
@@ -49,7 +47,10 @@ impl DocumentState {
         // Ensure valid UTF-8 character boundary for insertion
         if let Some(ref insert) = edit.insert {
             if !self.content.is_char_boundary(edit.position) {
-                eprintln!("Insert position is not a valid UTF-8 boundary: {}", edit.position);
+                eprintln!(
+                    "Insert position is not a valid UTF-8 boundary: {}",
+                    edit.position
+                );
                 return Err("Insert position is not a valid UTF-8 boundary.");
             }
             self.content.insert_str(edit.position, insert);
@@ -57,8 +58,7 @@ impl DocumentState {
         // Ensure valid UTF-8 character boundary for deletion
         else if let Some(delete) = edit.delete {
             let end = edit.position + delete;
-            if !self.content.is_char_boundary(edit.position)
-                || !self.content.is_char_boundary(end)
+            if !self.content.is_char_boundary(edit.position) || !self.content.is_char_boundary(end)
             {
                 eprintln!(
                     "Delete range is not valid UTF-8 boundaries: {} to {}",
@@ -83,11 +83,7 @@ pub async fn run_server() -> Result<(), Box<dyn std::error::Error>> {
     let document = Arc::new(RwLock::new(DocumentState::new()));
 
     while let Ok((stream, _)) = listener.accept().await {
-        tokio::spawn(handle_connection(
-            stream,
-            peers.clone(),
-            document.clone(),
-        ));
+        tokio::spawn(handle_connection(stream, peers.clone(), document.clone()));
     }
 
     Ok(())
@@ -134,7 +130,6 @@ async fn handle_connection(
     let broadcast_incoming = incoming.try_for_each(|msg| {
         let peers = peers.clone();
         let document = document.clone();
-        let addr = addr.clone();
 
         async move {
             match msg.to_text() {
@@ -211,3 +206,8 @@ async fn handle_connection(
     peers.write().await.remove(&addr.to_string());
 }
 
+impl Default for DocumentState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
